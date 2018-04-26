@@ -1,0 +1,82 @@
+install.packages(“tm”)
+library(tm)
+votes <- read.csv("/Users/Trunk/Desktop/house-votes.txt", header=FALSE, col.names= c("Class Name", "handicapped-infants", "water-project-cast-sharing", "adoption-of-the-budget-resolution", "physician-fee-freeze", "el-salvador-aid", "religious-groups-in-schools", "anti-satellite-test-ban", "aid-to-nicaraguan-contras", "mx-missile", "immigration", "synfuels-corporation-cutback", "education-spending", "superfund-right-to-sue", "crime", "duty-free-exports", "export-administration-act-south-africa"), stringsAsFactors=TRUE)
+dems <- subset(votes, votes$Class.Name == “democrat”)
+reps <- subset(votes, votes$Class.Name == “republican”)
+summary(dems)
+summary(reps)
+cleanup <- read.csv("/Users/Trunk/Desktop/house-votes.txt", header=FALSE, col.names= c("Class Name", "handicapped-infants", "water-project-cast-sharing", "adoption-of-the-budget-resolution", "physician-fee-freeze", "el-salvador-aid", "religious-groups-in-schools", "anti-satellite-test-ban", "aid-to-nicaraguan-contras", "mx-missile", "immigration", "synfuels-corporation-cutback", "education-spending", "superfund-right-to-sue", "crime", "duty-free-exports", "export-administration-act-south-africa"), stringsAsFactors=FALSE)
+democrats <- subset(cleanup, cleanup$Class.Name == “democrat”)
+republicans <- subset(cleanup, cleanup$Class.Name == “republican”)
+democrats$handicapped.infants[democrats$handicapped.infants == “?”] <- "y"
+democrats$water.project.cast.sharing[democrats$water.project.cast.sharing == “?”] <- “n”
+democrats$adoption.of.the.budget.resolution[democrats$adoption.of.the.budget.resolution == “?”] <- "y"
+democrats$physician.fee.freeze[democrats$physician.fee.freeze == “?”] <- “n”
+democrats$el.salvador.aid[democrats$el.salvador.aid == “?”] <- “n”
+democrats$religious.groups.in.schools[democrats$religious.groups.in.schools == “?”] <- “n”
+democrats$anti.satellite.test.ban[democrats$anti.satellite.test.ban == “?”] <- “n”
+democrats$aid.to.nicaraguan.contras[democrats$aid.to.nicaraguan.contras == “?”] <- "y"
+democrats$mx.missile[democrats$mx.missile == “?”] <- "y"
+democrats$immigration[democrats$immigration == “?”] <- “n”
+democrats$synfuels.corporation.cutback[democrats$synfuels.corporation.cutback == “?”] <- "y"
+democrats$education.spending[democrats$education.spending == “?”] <- “n”
+democrats$superfund.right.to.sue[democrats$superfund.right.to.sue == “?”] <- “n”
+democrats$crime[democrats$crime == “?”] <- “n”
+democrats$duty.free.exports[democrats$duty.free.exports == “?”] <- "y"
+democrats$export.administration.act.south.africa[democrats$export.administration.act.south.africa == “?”] <- "y"
+republicans$handicapped.infants[republicans$handicapped.infants == “?”] <- “n”
+republicans$water.project.cast.sharing[republicans$water.project.cast.sharing == “?”] <- “y”
+republicans$adoption.of.the.budget.resolution[republicans$adoption.of.the.budget.resolution == “?”] <- “n”
+republicans$physician.fee.freeze[republicans$physician.fee.freeze == “?”] <- “y”
+republicans$el.salvador.aid[republicans$el.salvador.aid == “?”] <- “y”
+republicans$religious.groups.in.schools[republicans$religious.groups.in.schools == “?”] <- “y”
+republicans$anti.satellite.test.ban[republicans$anti.satellite.test.ban == “?”] <- “y”
+republicans$aid.to.nicaraguan.contras[republicans$aid.to.nicaraguan.contras == “?”] <- “n”
+republicans$mx.missile[republicans$mx.missile == “?”] <- “n”
+republicans$immigration[republicans$immigration == “?”] <- “y”
+republicans$synfuels.corporation.cutback[republicans$synfuels.corporation.cutback == “?”] <- “n”
+republicans$education.spending[republicans$education.spending == “?”] <- “y”
+republicans$superfund.right.to.sue[republicans$superfund.right.to.sue == “?”] <- “y”
+republicans$crime[republicans$crime == “?”] <- “y”
+republicans$duty.free.exports[republicans$duty.free.exports == “?”] <- “n”
+republicans$export.administration.act.south.africa[republicans$export.administration.act.south.africa == “?”] <- “n”
+voters <- rbind(democrats, republicans)
+voters$Class.Name <- factor(voters$Class.Name)
+voters_sample <- sample(435, 325)
+voters_train <- voters[voters_sample, ]
+voters_test <- voters[-voters_sample, ]
+voters_train_labels <- voters[voters_sample, ]$Class.Name
+voters_test_labels <- voters[-voters_sample, ]$Class.Name
+install.packages(“e1071”)
+library(e1071)
+voters_classifications <- naiveBayes(voters_train, voters_train_labels)
+voters_test_pred <- predict(voters_classifications, voters_test)
+library(gmodels)
+CrossTable(voters_test_pred, voters_test_labels, prop.chisq = FALSE, prop.t=FALSE, dnn = c('predicted', 'actual'))
+install.packages(“rpart”)
+library(rpart)
+voters.rpart <- rpart(Class.Name ~ ., data=voters_train)
+voters.rpart
+install.packages(“rpart.plot”)
+library(part.plot)
+rpart.plot(voters.rpart, digits=3)
+install.packages(“caret”)
+library (caret)
+install.packages(“klaR”)
+library (klaR)
+10fold_nb <- train(voters_test, voters_test_labels, 'nb', trControl=trainControl(method='cv', number=10))
+10fold_nb
+10fold_rpart <- train(voters_test, voters_test_labels, 'rpart', trControl=trainControl(method='cv', number=10))
+10fold_rpart
+modelLookup("nb")
+modelLookup("rpart")
+nb_tune <- train(Class.Name ~ ., data=voting, method="nb")
+nb_tune
+rpart_tune <- train(Class.Name ~ ., data=voting, method=“rpart”)
+rpart_tune
+install.packages(“randomForest”)
+library(randomForest)
+ctrl2 <- trainControl(method = “repeatedcv”, number=10, repeats=10)
+grid_rf <- expand.grid(.mtry= c(2,4,8,16))
+m_rf <- train(Class.Name ~ ., data=test, method=“rf”, metric=“kappa”, trControl=ctrl2, tuneGrid= grid_rf)
+m_rf
