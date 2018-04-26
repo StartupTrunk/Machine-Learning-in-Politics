@@ -1,0 +1,210 @@
+
+Joshua Trunk
+R - Final Project
+12/10/2017
+
+	The first task in our project is to import and prepare the data by imputing missing values in a way that agrees with the goal of the project. The process I have decided to use in determining these missing values is a political party majority vote. That is, comparing each individual topic (i.e. handicapped infants) by a total count/percentage of republicans and democrats whom voted yes/no. 
+
+	I approached this task by first creating two subsets of data:
+
+dems <- subset(votes, votes$Class.Name == “democrat”)
+reps <- subset(votes, votes$Class.Name == “republican”)
+
+	I then reviewed the results with the summary function to determine whether democrats or republicans had a higher percentage of yes/no per each individual topic. The results:
+ 1. handicapped-infants: dems YES reps NO 2. water-project-cost-sharing: dems NO reps YES 3. adoption-of-the-budget-resolution: dems YES reps NO
+4. physician-fee-freeze: dems NO reps YES
+5. el-salvador-aid: dems NO reps YES 6. religious-groups-in-schools: dems NO reps YES 7. anti-satellite-test-ban: dems YES reps NO 8. aid-to-nicaraguan-contras: dems YES reps NO 9. mx-missile: dems YES reps NO 10. immigration: dems NO reps YES 11. synfuels-corporation-cutback: dems YES reps NO 12. education-spending: dems NO reps YES 13. superfund-right-to-sue: dems NO reps YES 14. crime: dems NO reps YES 15. duty-free-exports: dems YES reps NO 16. export-administration-act-south-africa: dems YES reps NO  
+
+	Using this new knowledge I loaded the data again using stringsAsFactors=FALSE and created two new subsets divided by political party; democrats & republicans. I then replaced every ? for each topic with the appropriate vote determined above. For example, using handicapped.infants, the democrats were more likely to vote Yes while the Republicans were more likely to vote No. Using this formula:
+
+democrats$handicapped.infants[democrats$handicapped.infants == “?”] <- "y"
+
+I replaced all democrat ? for this topic with “y”. I repeated this for the remaining 15 topics and then all 16 again for the republicans subset. I combined the data back into one data frame, voters, using rbind. This however keeps the data in order by Class.Name, so before creating test sets, training sets, and labels I used < voters_sample <- sample(435, 325) to randomize the order.
+
+Now that the data is prepared, I decided to apply the Naive Bayes and Regression Trees learning algorithms to the dataset. 
+
+The Naive Bayes CrossTable:
+
+ 
+   Cell Contents
+|-------------------------|
+|                       N |
+|           N / Row Total |
+|           N / Col Total |
+|-------------------------|
+
+ 
+Total Observations in Table:  110 
+
+ 
+             | actual 
+   predicted |   democrat | republican |  Row Total | 
+-------------|------------|------------|------------|
+    democrat |         63 |          0 |         63 | 
+             |      1.000 |      0.000 |      0.573 | 
+             |      1.000 |      0.000 |            | 
+-------------|------------|------------|------------|
+  republican |          0 |         47 |         47 | 
+             |      0.000 |      1.000 |      0.427 | 
+             |      0.000 |      1.000 |            | 
+-------------|------------|------------|------------|
+Column Total |         63 |         47 |        110 | 
+             |      0.573 |      0.427 |            | 
+-------------|------------|------------|------------|
+
+
+The crosstab above shows that the Bayes classifier did not make a single mistake, corresponding to an error rate of 0%. Therefore, we obviously do not have any false positives or false negatives. Given these results there is not much to do in terms of improvement for this given model. 
+
+Regression Trees:
+
+n= 325 
+
+node), split, n, loss, yval, (yprob)
+      * denotes terminal node
+
+ 1) root 325 121 democrat (0.62769230769 0.37230769231)  
+   2) physician.fee.freeze=n 195   2 democrat (0.98974358974 0.01025641026) *
+   3) physician.fee.freeze=y 130  11 republican (0.08461538462 0.91538461538)  
+     6) synfuels.corporation.cutback=y 26   8 republican (0.30769230769 0.69230769231)  
+      12) adoption.of.the.budget.resolution=y 7   2 democrat (0.71428571429 0.28571428571) *
+      13) adoption.of.the.budget.resolution=n 19   3 republican (0.15789473684 0.84210526316) *
+     7) synfuels.corporation.cutback=n 104   3 republican (0.02884615385 0.97115384615) *
+
+
+The nodes depicted in the Regression Tree perform well in this model. The physician.fee.freeze node contains 195 examples with a 2 democrat deviance from the answer “n”. The next nodes adoption.of.the.budget.resolution have a 2 democrat deviance for yes and a 3 republican deviance for no. The synfuels.corporation.cutback has 104 examples with a 3 republican deviance for the answer no. 
+
+The visual regression tree < part.plot(voters.rpart, digits = 3) shows all examples in the voters_train data dividing initially at the physician.fee.freeze question. With 60% of the results answering yes are predicted to be democrats; the remaining 40% being republicans. The following republican split for synfuels.corporation.cutback was 32% of republicans answering yes with the remaining 8% divided at adoption.of.the.budget.resolution; 2.2% democrats and 5.8% republicans.
+
+While both models performed well with my dataset, in comparison the Naive Bayes outperformed the Regression Trees with its absolutely perfect error rate of 0%.
+
+Using 10-fold CV, I was able to see how well the learning algorithms would perform on new datasets: 
+
+Naive Bayes 
+
+110 samples
+ 17 predictor
+  2 classes: 'democrat', 'republican' 
+
+No pre-processing
+Resampling: Cross-Validated (10 fold) 
+Summary of sample sizes: 99, 99, 100, 98, 100, 99, ... 
+Resampling results across tuning parameters:
+
+  usekernel  Accuracy  Kappa
+  FALSE      1         1    
+   TRUE      1         1    
+
+Tuning parameter 'fL' was held constant at a value of 0
+Tuning parameter 'adjust' was held constant at
+ a value of 1
+Accuracy was used to select the optimal model using  the largest value.
+The final values used for the model were fL = 0, usekernel = FALSE and adjust = 1.
+
+CART 
+
+110 samples
+ 17 predictor
+  2 classes: 'democrat', 'republican' 
+
+No pre-processing
+Resampling: Cross-Validated (10 fold) 
+Summary of sample sizes: 99, 100, 99, 98, 99, 99, ... 
+Resampling results across tuning parameters:
+
+  cp   Accuracy      Kappa
+  0.0  1.0000000000  1    
+  0.5  1.0000000000  1    
+  1.0  0.5728787879  0    
+
+Accuracy was used to select the optimal model using  the largest value.
+The final value used for the model was cp = 0.5.
+
+As to be expected, the Naive Bayes learning algorithm will succeed 100% of the time with any new datasets when fL is held constant at 0 and adjust is held constant at 1. The regression tree learning algorithm slightly underperformed, as displayed above, when accuracy was used as the optimal model using the largest value. 
+
+Moving forward, in order to perform automated parameter tuning for each model with the caret package I used the modelLookup command to determine the appropriate parameters for nb and rpart.
+
+modelLookup("nb")
+
+  model parameter                label forReg forClass probModel
+1    nb        fL   Laplace Correction  FALSE     TRUE      TRUE
+2    nb usekernel    Distribution Type  FALSE     TRUE      TRUE
+3    nb    adjust Bandwidth Adjustment  FALSE     TRUE      TRUE
+
+modelLookup("rpart")
+
+  model parameter                label forReg forClass probModel
+1 rpart        cp Complexity Parameter   TRUE     TRUE      TRUE
+
+As you can see above, the nb uses three tuning parameters; fL, usekernel, & adjust. The regression tree, designated as rpart, only uses one; cp. 
+
+The tuned results:
+
+Naive Bayes 
+
+435 samples
+ 16 predictor
+  2 classes: 'democrat', 'republican' 
+
+No pre-processing
+Resampling: Bootstrapped (25 reps) 
+Summary of sample sizes: 435, 435, 435, 435, 435, 435, ... 
+Resampling results across tuning parameters:
+
+  usekernel  Accuracy      Kappa       
+  FALSE      0.9463822525  0.8863513111
+   TRUE      0.9150778825  0.8243561509
+
+Tuning parameter 'fL' was held constant at a value of 0
+Tuning parameter 'adjust' was held constant at
+ a value of 1
+Accuracy was used to select the optimal model using  the largest value.
+The final values used for the model were fL = 0, usekernel = FALSE and adjust = 1.
+
+CART 
+
+435 samples
+ 16 predictor
+  2 classes: 'democrat', 'republican' 
+
+No pre-processing
+Resampling: Bootstrapped (25 reps) 
+Summary of sample sizes: 435, 435, 435, 435, 435, 435, ... 
+Resampling results across tuning parameters:
+
+  cp              Accuracy      Kappa       
+  0.000000000000  0.9608936043  0.9175584713
+  0.008928571429  0.9635101073  0.9232931004
+  0.904761904762  0.8236029862  0.5479917170
+
+Accuracy was used to select the optimal model using  the largest value.
+The final value used for the model was cp = 0.008928571429.
+
+We can see above that the output for each model uses 25 bootstrap samples to train the model, each including 435 examples. The accuracy seems to stay relatively high for the nb ranging between 0.915 and 0.946 and a Kappa range of 0.824 and 0.886. The rpart, on the other hand, varies more with an accuracy range at a lower 0.823 to a higher 0.963 (cp being 0.008928571429).
+
+In my final steps I used the randomForest ensemble package in attempt to further improve the performance:
+
+Random Forest 
+
+435 samples
+ 16 predictor
+  2 classes: 'democrat', 'republican' 
+
+No pre-processing
+Resampling: Cross-Validated (10 fold, repeated 10 times) 
+Summary of sample sizes: 391, 391, 393, 391, 392, 392, ... 
+Resampling results across tuning parameters:
+
+  mtry  Accuracy      Kappa       
+   2    0.9620947851  0.9206270639
+   4    0.9694795127  0.9361761924
+   8    0.9717678446  0.9409003359
+  16    0.9646473875  0.9257481236
+
+Accuracy was used to select the optimal model using  the largest value.
+The final value used for the model was mtry = 8.
+
+Using this model I was able to increase the Accuracy to 0.971 with a Kappa of 0.940.
+
+In conclusion, the Naive Bayes learning algorithm performed best given the dataset and manipulations I performed in this project. I believe with this algorithm we can accurately predict 100% of the time whether a voter is republican or democrat based on their 16 corresponding votes.
+
+
